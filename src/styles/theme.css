@@ -1,0 +1,8 @@
+/* Theme variables for StreamVault */
+:root {
+  --streaming-dark: #0a0a0f;
+  --streaming-charcoal: #12121a;
+  --streaming-slate: #1a1a24;
+  --streaming-accent: #e50914;
+  --streaming-accent-hover: #f40612;
+}
