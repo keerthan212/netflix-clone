@@ -45,7 +45,7 @@ export function LandingPage() {
             </p>
             <div className="flex flex-wrap gap-4">
               <Link
-                to="/login"
+                to="/signup"
                 className="px-8 py-4 rounded-lg bg-streaming-accent hover:bg-streaming-accent-hover font-semibold transition-all hover:scale-105 shadow-lg shadow-streaming-accent/20"
               >
                 Get Started

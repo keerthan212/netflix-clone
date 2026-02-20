@@ -12,7 +12,13 @@ export function MovieRow({ title, items = [], loading = false }) {
     })
   }
 
-  const displayItems = items.length ? items : []
+  const placeholderItems = Array.from({ length: 8 }, (_, i) => ({
+    id: `placeholder-${title}-${i}`,
+    title: `Content ${i + 1}`,
+    image: `https://picsum.photos/seed/${title.replace(/\s/g, '')}${i}/300/450`,
+    year: '2024',
+  }))
+  const displayItems = items.length ? items : placeholderItems
 
   return (
     <section className="group mb-12 animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -52,20 +58,14 @@ export function MovieRow({ title, items = [], loading = false }) {
                   <SkeletonCard />
                 </div>
               ))
-            : displayItems.length > 0
-              ? displayItems.map((item, index) => (
+            : displayItems.map((item, index) => (
                 <div
                   key={item?.id ?? index}
                   className="flex-shrink-0 w-40 sm:w-48 md:w-56 snap-center"
                 >
                   <MovieCard item={item} />
                 </div>
-              ))
-              : (
-                <div className="flex items-center justify-center py-12 px-8 text-white/60 min-w-full">
-                  <p>Add VITE_TMDB_API_KEY to .env to load movie posters</p>
-                </div>
-              )}
+              ))}
         </div>
       </div>
     </section>

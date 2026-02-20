@@ -1,32 +1,47 @@
 import { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { Link, useNavigate } from 'react-router-dom'
 
-export function LoginPage() {
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
+export function SignUpPage() {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { login } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
-
-  const from = location.state?.from?.pathname || '/dashboard'
 
   const validate = () => {
     const newErrors = {}
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+    if (!name.trim()) {
+      newErrors.name = 'Name is required'
+    } else if (name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters'
+    }
+
     if (!email.trim()) {
       newErrors.email = 'Email is required'
     } else if (!emailRegex.test(email)) {
       newErrors.email = 'Please enter a valid email address'
     }
+
     if (!password) {
       newErrors.password = 'Password is required'
     } else if (password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters'
     }
+
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password'
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match'
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -37,16 +52,32 @@ export function LoginPage() {
 
     setIsSubmitting(true)
     try {
-      const result = await login(email, password)
-      setIsSubmitting(false)
-      if (result.success) {
-        navigate(from, { replace: true })
-      } else {
-        setErrors({ password: result.error || 'Invalid email or password' })
+      const response = await fetch(`${API_URL}/api/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setErrors({ submit: data.error || 'Sign up failed. Please try again.' })
+        setIsSubmitting(false)
+        return
       }
+
+      // Success - redirect to login page
+      navigate('/login', { state: { message: 'Account created successfully! Please sign in.' } })
     } catch (error) {
+      console.error('Sign up error:', error)
+      setErrors({ submit: 'Network error. Please try again.' })
       setIsSubmitting(false)
-      setErrors({ password: 'An error occurred. Please try again.' })
     }
   }
 
@@ -55,7 +86,7 @@ export function LoginPage() {
       {/* Background */}
       <div className="absolute inset-0 z-0">
         <img
-          src="https://picsum.photos/seed/login/1920/1080"
+          src="https://picsum.photos/seed/signup/1920/1080"
           alt=""
           className="w-full h-full object-cover"
         />
@@ -70,11 +101,34 @@ export function LoginPage() {
             <Link to="/" className="inline-block font-display font-bold text-2xl mb-2">
               <span className="text-streaming-accent">Stream</span>Vault
             </Link>
-            <h1 className="text-2xl font-display font-semibold">Welcome back</h1>
-            <p className="text-white/70 text-sm mt-1">Sign in to continue to your dashboard</p>
+            <h1 className="text-2xl font-display font-semibold">Create your account</h1>
+            <p className="text-white/70 text-sm mt-1">Sign up to start streaming</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-white/90 mb-2">
+                Full Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setErrors((prev) => ({ ...prev, name: '' }))
+                }}
+                placeholder="John Doe"
+                className={`w-full px-4 py-3 rounded-lg bg-white/5 border ${
+                  errors.name ? 'border-red-500' : 'border-white/20'
+                } text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-streaming-accent focus:border-transparent transition-all`}
+                autoComplete="name"
+              />
+              {errors.name && (
+                <p className="mt-1.5 text-sm text-red-400">{errors.name}</p>
+              )}
+            </div>
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-white/90 mb-2">
                 Email address
@@ -115,7 +169,7 @@ export function LoginPage() {
                   className={`w-full px-4 py-3 pr-12 rounded-lg bg-white/5 border ${
                     errors.password ? 'border-red-500' : 'border-white/20'
                   } text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-streaming-accent focus:border-transparent transition-all`}
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
@@ -140,6 +194,54 @@ export function LoginPage() {
               )}
             </div>
 
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-white/90 mb-2">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value)
+                    setErrors((prev) => ({ ...prev, confirmPassword: '' }))
+                  }}
+                  placeholder="••••••••"
+                  className={`w-full px-4 py-3 pr-12 rounded-lg bg-white/5 border ${
+                    errors.confirmPassword ? 'border-red-500' : 'border-white/20'
+                  } text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-streaming-accent focus:border-transparent transition-all`}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white transition-colors p-1"
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <p className="mt-1.5 text-sm text-red-400">{errors.confirmPassword}</p>
+              )}
+            </div>
+
+            {errors.submit && (
+              <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/50">
+                <p className="text-sm text-red-400">{errors.submit}</p>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isSubmitting}
@@ -151,25 +253,20 @@ export function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Signing in...
+                  Creating account...
                 </>
               ) : (
-                'Sign In'
+                'Sign Up'
               )}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-white/60">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-streaming-accent hover:text-streaming-accent-hover font-medium">
-              Sign up
+            Already have an account?{' '}
+            <Link to="/login" className="text-streaming-accent hover:text-streaming-accent-hover font-medium">
+              Sign in
             </Link>
           </p>
-          {location.state?.message && (
-            <div className="mt-4 p-3 rounded-lg bg-green-500/20 border border-green-500/50">
-              <p className="text-sm text-green-400">{location.state.message}</p>
-            </div>
-          )}
         </div>
 
         <p className="mt-6 text-center">
